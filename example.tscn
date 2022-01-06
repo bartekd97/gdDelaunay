@@ -1,0 +1,88 @@
+[gd_scene load_steps=2 format=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+var delone : Delaunay
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	delone = Delaunay.new(Rect2(-300,-300,1600,1000))
+	
+	randomize()
+	for i in range(10):
+		for j in range(10):
+			add_point(Vector2(50 + i*100 + rand_range(-15,15), 50 + j * 50 + rand_range(-15,15)) * 1.2)
+
+
+	var triangles = delone.triangulate()
+	for triangle in triangles:
+		if !delone.is_border_triangle(triangle):
+			show_triangle(triangle)
+		
+	var sites = delone.make_voronoi(triangles)
+	for site in sites:
+		show_site(site)
+	for site in sites:
+		if site.neightbours.size() != site.source_triangles.size():
+			continue # sites on edges will have incomplete neightbours information
+		for nb in site.neightbours:
+			show_neightbour(nb)
+	
+
+func add_point(point: Vector2):
+	var polygon = Polygon2D.new()
+	var p = PoolVector2Array()
+	var s = 5
+	p.append(Vector2(-s,s))
+	p.append(Vector2(s,s))
+	p.append(Vector2(s,-s))
+	p.append(Vector2(-s,-s))
+	polygon.polygon = p
+	polygon.color = Color.burlywood
+	polygon.position = point
+	add_child(polygon)
+	delone.add_point(point)
+
+func show_triangle(triangle: Delaunay.Triangle):
+	var line = Line2D.new()
+	var p = PoolVector2Array()
+	p.append(triangle.a)
+	p.append(triangle.b)
+	p.append(triangle.c)
+	p.append(triangle.a)
+	line.points = p
+	line.width = 1
+	line.antialiased
+	add_child(line)
+
+func show_site(site: Delaunay.VoronoiSite):
+	var line = Line2D.new()
+	var p = site.polygon
+	p.append(p[0])
+	line.points = p
+	line.width = 1
+	line.default_color = Color.greenyellow
+	add_child(line)
+	
+func show_neightbour(edge: Delaunay.VoronoiEdge):
+	var line = Line2D.new()
+	var points: PoolVector2Array
+	var l = 6
+	var s = lerp(edge.a, edge.b, 0.6)
+	var dir = edge.a.direction_to(edge.b).tangent()
+	points.append(s + dir * l)
+	points.append(s - dir * l)
+	line.points = points
+	line.width = 1
+	line.default_color = Color.cyan
+	add_child(line)
+"
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Generator" type="Node2D" parent="."]
+position = Vector2( 0, 1 )
+script = SubResource( 1 )
+
+[node name="Polygon2D" type="Polygon2D" parent="Generator"]
