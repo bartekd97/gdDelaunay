@@ -17,6 +17,9 @@ class Edge:
 		
 	func length() -> float:
 		return a.distance_to(b)
+		
+	func center() -> Vector2:
+		return (a + b) * 0.5
 	
 
 class Triangle:
@@ -52,14 +55,12 @@ class Triangle:
 		
 		center = Vector2(xNum / den, yNum / den)
 		radius_sqr = center.distance_squared_to(a)
-		
 	
 	func angle(corner: Vector2, a: Vector2, b: Vector2) -> float:
 		var ca = corner.direction_to(a)
 		var cb = corner.direction_to(b)
 		var dot = ca.dot(cb)
 		return acos(dot)
-		
 		
 	func is_point_inside_circumcircle(point: Vector2) -> bool:
 		return center.distance_squared_to(point) < radius_sqr
@@ -80,7 +81,7 @@ class Triangle:
 
 class VoronoiSite:
 	var center: Vector2
-	var polygon: PoolVector2Array
+	var polygon: PoolVector2Array # points in absolute position, clockwise
 	var source_triangles: Array # of Triangle's that create this site internally
 	var neightbours: Array # of VoronoiEdge
 	
@@ -91,6 +92,12 @@ class VoronoiSite:
 		var da = center.direction_to(a.center).angle()
 		var db = center.direction_to(b.center).angle()
 		return da < db # clockwise sort
+		
+	func get_relative_polygon() -> PoolVector2Array: # return points in relative position to center
+		var polygon_local: PoolVector2Array
+		for point in polygon:
+			polygon_local.append(point - center)
+		return polygon_local
 
 
 class VoronoiEdge:
@@ -104,6 +111,9 @@ class VoronoiEdge:
 		
 	func length() -> float:
 		return a.distance_to(b)
+		
+	func center() -> Vector2:
+		return (a + b) * 0.5
 
 
 # ==== PUBLIC VARIABLES ====
@@ -111,6 +121,7 @@ var points: PoolVector2Array
 
 
 # ==== PRIVATE VARIABLES ====
+var _rect: Rect2
 var _rect_corners: Array
 var _rect_triangle1: Triangle
 var _rect_triangle2: Triangle
@@ -123,6 +134,7 @@ func _init(rect: Rect2):
 	var c1 = Vector2(rect.position + Vector2(rect.size.x,0))
 	var c2 = Vector2(rect.position + Vector2(0,rect.size.y))
 	var c3 = Vector2(rect.end)
+	_rect = rect
 	_rect_corners.append_array([c0,c1,c2,c3])
 	_rect_triangle1 = Triangle.new(c0,c1,c2)
 	_rect_triangle2 = Triangle.new(c1,c2,c3)
@@ -139,12 +151,12 @@ func is_border_triangle(triangle: Triangle) -> bool:
 
 
 func remove_border_triangles(triangulation: Array) -> void:
-	var bad_triangles: Array
+	var border_triangles: Array
 	for triangle in triangulation:
 		if is_border_triangle(triangle):
-			bad_triangles.append(triangle)
-	for bad_tirangle in bad_triangles:
-		triangulation.erase(bad_tirangle)
+			border_triangles.append(triangle)
+	for border_triangle in border_triangles:
+		triangulation.erase(border_triangle)
 
 
 func triangulate() -> Array: # of Triangle
