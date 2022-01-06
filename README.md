@@ -56,6 +56,7 @@ class Edge: # Delaunay.Edge
 	var b: Vector2
 	func equals(edge: Edge) -> bool
 	func length() -> float
+	func center() -> Vector2
 
 class Triangle: # Delaunay.Triangle
 	var a: Vector2
@@ -66,12 +67,18 @@ class Triangle: # Delaunay.Triangle
 	var edge_ca: Edge
 	var center: Vector2
 	var radius_sqr: float
+	func recalculate_circumcircle() -> void
+	func angle(corner: Vector2, a: Vector2, b: Vector2) -> float
+	func is_point_inside_circumcircle(point: Vector2) -> bool
+	func is_corner(point: Vector2) -> bool
+	func get_corner_opposite_edge(corner: Vector2) -> Edge
 
 class VoronoiSite: # Delaunay.VoronoiSite
 	var center: Vector2
 	var polygon: PoolVector2Array # clockwise points in absolute position
 	var source_triangles: Array # of Triangle's that create this site internally, also clockwise
 	var neightbours: Array # of VoronoiEdge, also clockwise
+	func get_relative_polygon() -> PoolVector2Array # clockwise points in relative position to center
 
 class VoronoiEdge: # Delaunay.VoronoiEdge
 	var a: Vector2
@@ -80,6 +87,7 @@ class VoronoiEdge: # Delaunay.VoronoiEdge
 	var other: VoronoiSite
 	func equals(edge: Edge) -> bool
 	func length() -> float
+	func center() -> Vector2
   
  
 # ==== PUBLIC VARIABLES ====
