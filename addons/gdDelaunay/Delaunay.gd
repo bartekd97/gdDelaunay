@@ -114,6 +114,16 @@ class VoronoiEdge:
 		
 	func center() -> Vector2:
 		return (a + b) * 0.5
+		
+		
+# ==== PUBLIC STATIC FUNCTIONS ====
+
+# calculates rect that contains all given points
+static func calculate_rect(points: PoolVector2Array) -> Rect2:
+	var rect = Rect2(points[0], Vector2.ZERO)
+	for point in points:
+		rect = rect.expand(point)
+	return rect
 
 
 # ==== PUBLIC VARIABLES ====
@@ -122,22 +132,31 @@ var points: PoolVector2Array
 
 # ==== PRIVATE VARIABLES ====
 var _rect: Rect2
-var _rect_corners: Array
-var _rect_triangle1: Triangle
-var _rect_triangle2: Triangle
+var _rect_super: Rect2
+var _rect_super_corners: Array
+var _rect_super_triangle1: Triangle
+var _rect_super_triangle2: Triangle
 
 
 # ==== CONSTRUCTOR ====
 func _init(rect: Rect2):
+	_rect = rect # save original rect
+	
+	# we expand rect to super rect to make sure
+	# all future points won't be too close to broder
+	# otherwise some math calculations may go crazy
+	# resulting in wrong triangulation
+	var rect_max_size = max(_rect.size.x, _rect.size.y)
+	_rect_super = _rect.grow(rect_max_size * 2)
+	
 	# calcualte and cache triangles for super rectangle
-	var c0 = Vector2(rect.position)
-	var c1 = Vector2(rect.position + Vector2(rect.size.x,0))
-	var c2 = Vector2(rect.position + Vector2(0,rect.size.y))
-	var c3 = Vector2(rect.end)
-	_rect = rect
-	_rect_corners.append_array([c0,c1,c2,c3])
-	_rect_triangle1 = Triangle.new(c0,c1,c2)
-	_rect_triangle2 = Triangle.new(c1,c2,c3)
+	var c0 = Vector2(_rect_super.position)
+	var c1 = Vector2(_rect_super.position + Vector2(_rect_super.size.x,0))
+	var c2 = Vector2(_rect_super.position + Vector2(0,_rect_super.size.y))
+	var c3 = Vector2(_rect_super.end)
+	_rect_super_corners.append_array([c0,c1,c2,c3])
+	_rect_super_triangle1 = Triangle.new(c0,c1,c2)
+	_rect_super_triangle2 = Triangle.new(c1,c2,c3)
 
 
 # ==== PUBLIC FUNCTIONS ====
@@ -147,7 +166,7 @@ func add_point(point: Vector2) -> void:
 
 
 func is_border_triangle(triangle: Triangle) -> bool:
-	return _rect_corners.has(triangle.a) || _rect_corners.has(triangle.b) || _rect_corners.has(triangle.c)
+	return _rect_super_corners.has(triangle.a) || _rect_super_corners.has(triangle.b) || _rect_super_corners.has(triangle.c)
 
 
 func remove_border_triangles(triangulation: Array) -> void:
@@ -162,8 +181,8 @@ func remove_border_triangles(triangulation: Array) -> void:
 func triangulate() -> Array: # of Triangle
 	var triangulation: Array # of Triangle
 	
-	triangulation.append(_rect_triangle1)
-	triangulation.append(_rect_triangle2)
+	triangulation.append(_rect_super_triangle1)
+	triangulation.append(_rect_super_triangle2)
 	
 	var bad_triangles: Array # of Triangle
 	var polygon: Array # of Edge
