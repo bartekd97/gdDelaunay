@@ -45,7 +45,7 @@ for site in sites:
 
 ## Data structs / API
 
-Check [source code](addons/gdDelaunay/Delaunay.gd) for details
+Check [source code](addons/gdDelaunay/Delaunay.gd) for more details
 
 ```GDScript
 class_name Delaunay
@@ -89,6 +89,9 @@ class VoronoiEdge: # Delaunay.VoronoiEdge
 	func length() -> float
 	func center() -> Vector2
   
+  
+# ==== PUBLIC STATIC FUNCTIONS ====
+static func calculate_rect(points: PoolVector2Array) -> Rect2:
  
 # ==== PUBLIC VARIABLES ====
 var points: PoolVector2Array
@@ -108,3 +111,4 @@ func make_voronoi(triangulation: Array) -> Array # of VoronoiSite
 ## To Do
 
 - [ ] Implement [Lloyd's relaxation algorithm](https://en.wikipedia.org/wiki/Lloyd%27s_algorithm)
+- [ ] Automatically shrink border Voronoi cell polygons to rectangle border edges
