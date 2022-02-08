@@ -96,7 +96,7 @@ class VoronoiEdge: # Delaunay.VoronoiEdge
   
   
 # ==== PUBLIC STATIC FUNCTIONS ====
-static func calculate_rect(points: PoolVector2Array) -> Rect2:
+static func calculate_rect(points: PoolVector2Array, padding: float = 0.0)) -> Rect2:
  
 # ==== PUBLIC VARIABLES ====
 var points: PoolVector2Array
@@ -123,3 +123,4 @@ func make_voronoi(triangulation: Array) -> Array # of VoronoiSite
 
 - [ ] Implement [Lloyd's relaxation algorithm](https://en.wikipedia.org/wiki/Lloyd%27s_algorithm)
 - [ ] Automatically clip border Voronoi cell polygons to rectangle border edges
+- [ ] Port to Godot 4
