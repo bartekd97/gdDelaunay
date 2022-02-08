@@ -14,9 +14,12 @@ Algorithm returns list of triangles for given set of points.
 To calcualte it, Bowyer-Watson algorithm originally generates super-triangle that contains all points.
 Unfortunetly, it wasn't giving good results on marginal points, so I've decided to implement "super-rectangle".
 It means that you need to specify a ractangle, that will contains all points.
+If you won't specify such rectangle - it will be calcualted automatically
 
 After that you can generate list of triangles, that will also contains **border triangles** - triangles that share rectange corner.
 Those triangles improves Voronoi diagram generation but for triangulation you will most likely don't want them. You can remove them with `remove_border_triangles()` function or manually check `is_border_triangle()` while processing them in a loop.
+
+Simillar thing happens after making Voronoi cells from triangles. Sites on rectangle edges tend to be quite stretched out and that's because there were no point behind to calcualte it properly. You can remove such sites using `remove_border_sites()` function or manually check `is_border_site()` while processing them in a loop. In future I plan to automatically clip such sites to rectangle boundary.
 
 
 ## Example
@@ -25,6 +28,7 @@ Check [example.tscn](example.tscn) which is 2d scene with embedded full example 
 
 ```GDScript
 var delone = Delaunay.new(Rect2(0,0,1200,700))
+#var delone = Delaunay.new() # use this to calcualte rect automatically
 for i in range(10):
   for j in range(10):
     delone.add_point(Vector2(50 + i*100 + rand_range(-15,15), 50 + j * 50 + rand_range(-15,15)))
@@ -36,10 +40,11 @@ for triangle in triangles:
     
 var sites = delone.make_voronoi(triangles)
 for site in sites:
-  show_site(site)
-  if site.neightbours.size() == site.source_triangles.size(): # sites on edges will have incomplete neightbours information
-    for neightbour_edge in site.neightbours:
-      show_neightbour(neightbour_edge)
+  if !delone.is_border_site(site): # do not render border sites
+    show_site(site)
+    if site.neightbours.size() == site.source_triangles.size(): # sites on edges will have incomplete neightbours information
+      for neightbour_edge in site.neightbours:
+        show_neightbour(neightbour_edge)
 ```
 
 
@@ -68,7 +73,6 @@ class Triangle: # Delaunay.Triangle
 	var center: Vector2
 	var radius_sqr: float
 	func recalculate_circumcircle() -> void
-	func angle(corner: Vector2, a: Vector2, b: Vector2) -> float
 	func is_point_inside_circumcircle(point: Vector2) -> bool
 	func is_corner(point: Vector2) -> bool
 	func get_corner_opposite_edge(corner: Vector2) -> Edge
@@ -79,6 +83,7 @@ class VoronoiSite: # Delaunay.VoronoiSite
 	var source_triangles: Array # of Triangle's that create this site internally, also clockwise
 	var neightbours: Array # of VoronoiEdge, also clockwise
 	func get_relative_polygon() -> PoolVector2Array # clockwise points in relative position to center
+	func get_boundary() -> Rect2:
 
 class VoronoiEdge: # Delaunay.VoronoiEdge
 	var a: Vector2
@@ -97,12 +102,18 @@ static func calculate_rect(points: PoolVector2Array) -> Rect2:
 var points: PoolVector2Array
 
 # ==== CONSTRUCTOR ====
-func _init(rect: Rect2) -> Delaunay
+func _init(rect: Rect2 = Rect2()) -> Delaunay # do not specify rectangle to calculate it automatically
 
 # ==== PUBLIC FUNCTIONS ====
 func add_point(point: Vector2) -> void
+func set_rectangle(rect: Rect2) -> void:
+
 func is_border_triangle(triangle: Triangle) -> bool
 func remove_border_triangles(triangulation: Array) -> void
+
+func is_border_site(site: VoronoiSite) -> bool:
+func remove_border_sites(sites: Array) -> void
+
 func triangulate() -> Array # of Triangle
 func make_voronoi(triangulation: Array) -> Array # of VoronoiSite
 ```
@@ -111,4 +122,4 @@ func make_voronoi(triangulation: Array) -> Array # of VoronoiSite
 ## To Do
 
 - [ ] Implement [Lloyd's relaxation algorithm](https://en.wikipedia.org/wiki/Lloyd%27s_algorithm)
-- [ ] Automatically shrink border Voronoi cell polygons to rectangle border edges
+- [ ] Automatically clip border Voronoi cell polygons to rectangle border edges
