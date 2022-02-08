@@ -45,23 +45,22 @@ class Triangle:
 		
 		
 	func recalculate_circumcircle() -> void:
-		var sA2 = sin(angle(a, b, c) * 2)
-		var sB2 = sin(angle(b, a, c) * 2)
-		var sC2 = sin(angle(c, a, b) * 2)
+		var ab = a.length_squared()
+		var cd = b.length_squared()
+		var ef = c.length_squared()
 		
-		var xNum = a.x * sA2 + b.x * sB2 + c.x * sC2
-		var yNum = a.y * sA2 + b.y * sB2 + c.y * sC2
-		var den = sA2 + sB2 + sC2
-		
-		center = Vector2(xNum / den, yNum / den)
-		radius_sqr = center.distance_squared_to(a)
-	
-	func angle(corner: Vector2, a: Vector2, b: Vector2) -> float:
-		var ca = corner.direction_to(a)
-		var cb = corner.direction_to(b)
-		var dot = ca.dot(cb)
-		return acos(dot)
-		
+		var cmb = c - b
+		var amc = a - c
+		var bma = b - a
+
+		var circum = Vector2(
+			(ab * cmb.y + cd * amc.y + ef * bma.y) / (a.x * cmb.y + b.x * amc.y + c.x * bma.y),
+			(ab * cmb.x + cd * amc.x + ef * bma.x) / (a.y * cmb.x + b.y * amc.x + c.y * bma.x)
+		)
+
+		center = circum * 0.5
+		radius_sqr = a.distance_squared_to(center)
+
 	func is_point_inside_circumcircle(point: Vector2) -> bool:
 		return center.distance_squared_to(point) < radius_sqr
 		
@@ -98,6 +97,12 @@ class VoronoiSite:
 		for point in polygon:
 			polygon_local.append(point - center)
 		return polygon_local
+		
+	func get_boundary() -> Rect2:
+		var rect = Rect2(polygon[0], Vector2.ZERO)
+		for point in polygon:
+			rect = rect.expand(point)
+		return rect
 
 
 class VoronoiEdge:
@@ -119,11 +124,11 @@ class VoronoiEdge:
 # ==== PUBLIC STATIC FUNCTIONS ====
 
 # calculates rect that contains all given points
-static func calculate_rect(points: PoolVector2Array) -> Rect2:
+static func calculate_rect(points: PoolVector2Array, padding: float = 0.0) -> Rect2:
 	var rect = Rect2(points[0], Vector2.ZERO)
 	for point in points:
 		rect = rect.expand(point)
-	return rect
+	return rect.grow(padding)
 
 
 # ==== PUBLIC VARIABLES ====
@@ -139,15 +144,24 @@ var _rect_super_triangle2: Triangle
 
 
 # ==== CONSTRUCTOR ====
-func _init(rect: Rect2):
+func _init(rect: Rect2 = Rect2()):
+	if (!rect.has_no_area()):
+		set_rectangle(rect)
+
+
+# ==== PUBLIC FUNCTIONS ====
+
+func add_point(point: Vector2) -> void:
+	points.append(point)
+
+
+func set_rectangle(rect: Rect2) -> void:
 	_rect = rect # save original rect
 	
 	# we expand rect to super rect to make sure
 	# all future points won't be too close to broder
-	# otherwise some math calculations may go crazy
-	# resulting in wrong triangulation
 	var rect_max_size = max(_rect.size.x, _rect.size.y)
-	_rect_super = _rect.grow(rect_max_size * 2)
+	_rect_super = _rect.grow(rect_max_size * 1)
 	
 	# calcualte and cache triangles for super rectangle
 	var c0 = Vector2(_rect_super.position)
@@ -157,12 +171,6 @@ func _init(rect: Rect2):
 	_rect_super_corners.append_array([c0,c1,c2,c3])
 	_rect_super_triangle1 = Triangle.new(c0,c1,c2)
 	_rect_super_triangle2 = Triangle.new(c1,c2,c3)
-
-
-# ==== PUBLIC FUNCTIONS ====
-
-func add_point(point: Vector2) -> void:
-	points.append(point)
 
 
 func is_border_triangle(triangle: Triangle) -> bool:
@@ -178,27 +186,44 @@ func remove_border_triangles(triangulation: Array) -> void:
 		triangulation.erase(border_triangle)
 
 
+func is_border_site(site: VoronoiSite) -> bool:
+	return !_rect.encloses(site.get_boundary())
+
+
+func remove_border_sites(sites: Array) -> void:
+	var border_sites: Array
+	for site in sites:
+		if is_border_site(site):
+			border_sites.append(site)
+	for border_site in border_sites:
+		sites.erase(border_site)
+
+
 func triangulate() -> Array: # of Triangle
 	var triangulation: Array # of Triangle
 	
+	# calculate rectangle if none
+	if (!_rect.has_no_area()):
+		set_rectangle(calculate_rect(points))
+	
 	triangulation.append(_rect_super_triangle1)
 	triangulation.append(_rect_super_triangle2)
-	
+
 	var bad_triangles: Array # of Triangle
 	var polygon: Array # of Edge
-	
+
 	for point in points:
 		bad_triangles.clear()
 		polygon.clear()
-		
+
 		_find_bad_triangles(point, triangulation, bad_triangles)
 		for bad_tirangle in bad_triangles:
 			triangulation.erase(bad_tirangle)
-			
+
 		_make_outer_polygon(bad_triangles, polygon)
 		for edge in polygon:
 			triangulation.append(Triangle.new(point, edge.a, edge.b))
-			
+
 	return triangulation
 
 
