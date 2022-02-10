@@ -120,6 +120,9 @@ class VoronoiEdge:
 	func center() -> Vector2:
 		return (a + b) * 0.5
 		
+	func normal() -> Vector2:
+		return a.direction_to(b).tangent()
+		
 		
 # ==== PUBLIC STATIC FUNCTIONS ====
 
@@ -307,21 +310,20 @@ func _find_bad_triangles(point: Vector2, triangles: Array, out_bad_triangles: Ar
 			
 			
 func _find_voronoi_neightbour(site: VoronoiSite, triangle: Triangle, possibilities: Array) -> VoronoiEdge:
-	var opposite_edge = triangle.get_corner_opposite_edge(site.center)
-	var angle_a = site.center.direction_to(opposite_edge.a).angle()
-	var angle_b = site.center.direction_to(opposite_edge.b).angle()
-	var nb_point = opposite_edge.b
-	if angle_a < angle_b:
-		nb_point = opposite_edge.a
-		
 	var triangle_index = site.source_triangles.find(triangle)
 	var next_triangle_index = triangle_index + 1
 	if (next_triangle_index == site.source_triangles.size()):
 		next_triangle_index = 0
 	var next_triangle = site.source_triangles[next_triangle_index]
+	
+	var opposite_edge = triangle.get_corner_opposite_edge(site.center)
+	var opposite_edge_next = next_triangle.get_corner_opposite_edge(site.center)
+	var common_point = opposite_edge.a
+	if common_point != opposite_edge_next.a && common_point != opposite_edge_next.b:
+		common_point = opposite_edge.b
 		
 	for pos_site in possibilities:
-		if pos_site.center != nb_point:
+		if pos_site.center != common_point:
 			continue
 		
 		var edge = VoronoiEdge.new()

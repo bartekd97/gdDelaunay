@@ -93,6 +93,7 @@ class VoronoiEdge: # Delaunay.VoronoiEdge
 	func equals(edge: Edge) -> bool
 	func length() -> float
 	func center() -> Vector2
+	func normal() -> Vector2
   
   
 # ==== PUBLIC STATIC FUNCTIONS ====
