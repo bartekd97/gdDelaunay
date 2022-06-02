@@ -148,8 +148,7 @@ var _rect_super_triangle2: Triangle
 
 # ==== CONSTRUCTOR ====
 func _init(rect: Rect2 = Rect2()):
-	if (!rect.has_no_area()):
-		set_rectangle(rect)
+	set_rectangle(rect)
 
 
 # ==== PUBLIC FUNCTIONS ====
