@@ -205,7 +205,7 @@ func triangulate() -> Array: # of Triangle
 	var triangulation: Array # of Triangle
 	
 	# calculate rectangle if none
-	if (!_rect.has_no_area()):
+	if (_rect.has_no_area()):
 		set_rectangle(calculate_rect(points))
 	
 	triangulation.append(_rect_super_triangle1)
