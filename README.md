@@ -114,6 +114,7 @@ func remove_border_triangles(triangulation: Array) -> void
 
 func is_border_site(site: VoronoiSite) -> bool:
 func remove_border_sites(sites: Array) -> void
+func get_polygon_site(site: VoronoiSite) -> PoolVector2Array: # return clipped polygon to Voronoi boundaries
 
 func triangulate() -> Array # of Triangle
 func make_voronoi(triangulation: Array) -> Array # of VoronoiSite
@@ -123,5 +124,7 @@ func make_voronoi(triangulation: Array) -> Array # of VoronoiSite
 ## To Do
 
 - [ ] Implement [Lloyd's relaxation algorithm](https://en.wikipedia.org/wiki/Lloyd%27s_algorithm)
-- [ ] Automatically clip border Voronoi cell polygons to rectangle border edges
+- [ ] Automatically clip border Voronoi cell polygons to rectangle border edges [^1]
 - [ ] Port to Godot 4
+
+[^1]: possible by using `get_polygon_site()` function manually
