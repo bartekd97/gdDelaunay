@@ -14,10 +14,10 @@ class Edge:
 		
 	func equals(edge: Edge) -> bool:
 		return (a == edge.a && b == edge.b) || (a == edge.b && b == edge.a)
-		
+	
 	func length() -> float:
 		return a.distance_to(b)
-		
+	
 	func center() -> Vector2:
 		return (a + b) * 0.5
 	
@@ -42,31 +42,31 @@ class Triangle:
 		edge_bc = Edge.new(b,c)
 		edge_ca = Edge.new(c,a)
 		recalculate_circumcircle()
-		
-		
+	
+	
 	func recalculate_circumcircle() -> void:
-		var ab = a.length_squared()
-		var cd = b.length_squared()
-		var ef = c.length_squared()
+		var ab := a.length_squared()
+		var cd := b.length_squared()
+		var ef := c.length_squared()
 		
-		var cmb = c - b
-		var amc = a - c
-		var bma = b - a
-
-		var circum = Vector2(
+		var cmb := c - b
+		var amc := a - c
+		var bma := b - a
+	
+		var circum := Vector2(
 			(ab * cmb.y + cd * amc.y + ef * bma.y) / (a.x * cmb.y + b.x * amc.y + c.x * bma.y),
 			(ab * cmb.x + cd * amc.x + ef * bma.x) / (a.y * cmb.x + b.y * amc.x + c.y * bma.x)
 		)
-
+	
 		center = circum * 0.5
 		radius_sqr = a.distance_squared_to(center)
-
+	
 	func is_point_inside_circumcircle(point: Vector2) -> bool:
 		return center.distance_squared_to(point) < radius_sqr
-		
+	
 	func is_corner(point: Vector2) -> bool:
 		return point == a || point == b || point == c
-		
+	
 	func get_corner_opposite_edge(corner: Vector2) -> Edge:
 		if corner == a:
 			return edge_bc
@@ -82,24 +82,24 @@ class VoronoiSite:
 	var center: Vector2
 	var polygon: PoolVector2Array # points in absolute position, clockwise
 	var source_triangles: Array # of Triangle's that create this site internally
-	var neightbours: Array # of VoronoiEdge
+	var neighbours: Array # of VoronoiEdge
 	
 	func _init(center: Vector2):
 		self.center = center
 		
 	func _sort_source_triangles(a: Triangle, b: Triangle) -> bool:
-		var da = center.direction_to(a.center).angle()
-		var db = center.direction_to(b.center).angle()
+		var da := center.direction_to(a.center).angle()
+		var db := center.direction_to(b.center).angle()
 		return da < db # clockwise sort
-		
+	
 	func get_relative_polygon() -> PoolVector2Array: # return points in relative position to center
 		var polygon_local: PoolVector2Array
 		for point in polygon:
 			polygon_local.append(point - center)
 		return polygon_local
-		
+	
 	func get_boundary() -> Rect2:
-		var rect = Rect2(polygon[0], Vector2.ZERO)
+		var rect := Rect2(polygon[0], Vector2.ZERO)
 		for point in polygon:
 			rect = rect.expand(point)
 		return rect
@@ -113,22 +113,22 @@ class VoronoiEdge:
 	
 	func equals(edge: VoronoiEdge) -> bool:
 		return (a == edge.a && b == edge.b) || (a == edge.b && b == edge.a)
-		
+	
 	func length() -> float:
 		return a.distance_to(b)
-		
+	
 	func center() -> Vector2:
 		return (a + b) * 0.5
-		
+	
 	func normal() -> Vector2:
 		return a.direction_to(b).tangent()
-		
-		
+
+
 # ==== PUBLIC STATIC FUNCTIONS ====
 
 # calculates rect that contains all given points
 static func calculate_rect(points: PoolVector2Array, padding: float = 0.0) -> Rect2:
-	var rect = Rect2(points[0], Vector2.ZERO)
+	var rect := Rect2(points[0], Vector2.ZERO)
 	for point in points:
 		rect = rect.expand(point)
 	return rect.grow(padding)
@@ -147,13 +147,12 @@ var _rect_super_triangle2: Triangle
 
 
 # ==== CONSTRUCTOR ====
-func _init(rect: Rect2 = Rect2()):
+func _init(rect := Rect2()):
 	if (!rect.has_no_area()):
 		set_rectangle(rect)
 
 
 # ==== PUBLIC FUNCTIONS ====
-
 func add_point(point: Vector2) -> void:
 	points.append(point)
 
@@ -163,14 +162,14 @@ func set_rectangle(rect: Rect2) -> void:
 	
 	# we expand rect to super rect to make sure
 	# all future points won't be too close to broder
-	var rect_max_size = max(_rect.size.x, _rect.size.y)
+	var rect_max_size := max(_rect.size.x, _rect.size.y)
 	_rect_super = _rect.grow(rect_max_size * 1)
 	
 	# calcualte and cache triangles for super rectangle
-	var c0 = Vector2(_rect_super.position)
-	var c1 = Vector2(_rect_super.position + Vector2(_rect_super.size.x,0))
-	var c2 = Vector2(_rect_super.position + Vector2(0,_rect_super.size.y))
-	var c3 = Vector2(_rect_super.end)
+	var c0 := Vector2(_rect_super.position)
+	var c1 := Vector2(_rect_super.position + Vector2(_rect_super.size.x,0))
+	var c2 := Vector2(_rect_super.position + Vector2(0,_rect_super.size.y))
+	var c3 := Vector2(_rect_super.end)
 	_rect_super_corners.append_array([c0,c1,c2,c3])
 	_rect_super_triangle1 = Triangle.new(c0,c1,c2)
 	_rect_super_triangle2 = Triangle.new(c1,c2,c3)
@@ -224,42 +223,40 @@ func triangulate() -> Array: # of Triangle
 	var triangulation: Array # of Triangle
 	
 	# calculate rectangle if none
-	
-#	if (!_rect.has_no_area()):
-	if (_rect.has_no_area()):
+	if _rect.has_no_area():
 		set_rectangle(calculate_rect(points))
 	
 	triangulation.append(_rect_super_triangle1)
 	triangulation.append(_rect_super_triangle2)
-
+	
 	var bad_triangles: Array # of Triangle
 	var polygon: Array # of Edge
-
+	
 	for point in points:
 		bad_triangles.clear()
 		polygon.clear()
-
+	
 		_find_bad_triangles(point, triangulation, bad_triangles)
 		for bad_tirangle in bad_triangles:
 			triangulation.erase(bad_tirangle)
-
+	
 		_make_outer_polygon(bad_triangles, polygon)
 		for edge in polygon:
 			triangulation.append(Triangle.new(point, edge.a, edge.b))
-
-	return triangulation
 	
+	return triangulation
+
 
 func make_voronoi(triangulation: Array) -> Array: # of VoronoiSite
 	var sites: Array
 
 	var completion_counter: Array # of Vector2, no PoolVector2Array to allow more oeprations
-	var triangle_usage: Dictionary # of Triangle and Array[VoronoiSite], used for neightbour scan
+	var triangle_usage: Dictionary # of Triangle and Array[VoronoiSite], used for neighbour scan
 	for triangle in triangulation:
 		triangle_usage[triangle] = []
 		
 	for point in points:
-		var site = VoronoiSite.new(point)
+		var site := VoronoiSite.new(point)
 		
 		completion_counter.clear()
 		
@@ -269,13 +266,13 @@ func make_voronoi(triangulation: Array) -> Array: # of VoronoiSite
 			
 			site.source_triangles.append(triangle)
 			
-			var edge = triangle.get_corner_opposite_edge(point)
+			var edge: Edge = triangle.get_corner_opposite_edge(point)
 			completion_counter.erase(edge.a)
 			completion_counter.erase(edge.b)
 			completion_counter.append(edge.a)
 			completion_counter.append(edge.b)
 		
-		var is_complete = completion_counter.size() == site.source_triangles.size()
+		var is_complete := completion_counter.size() == site.source_triangles.size()
 		if !is_complete:
 			continue # do not add sites without complete polygon, usually only corner sites than come from Rect boundary
 		
@@ -286,24 +283,21 @@ func make_voronoi(triangulation: Array) -> Array: # of VoronoiSite
 			polygon.append(triangle.center)
 			triangle_usage[triangle].append(site)
 		
-		site.polygon = polygon	
+		site.polygon = polygon
 		sites.append(site)
-		
-		
-	# scan for neightbours
+	
+	# scan for neighbours
 	for site in sites:
 		for triangle in site.source_triangles:
 			var posibilities = triangle_usage[triangle]
-			var neightbour = _find_voronoi_neightbour(site, triangle, posibilities)
-			if neightbour != null:
-				site.neightbours.append(neightbour)
+			var neighbour := _find_voronoi_neighbour(site, triangle, posibilities)
+			if neighbour != null:
+				site.neighbours.append(neighbour)
 	
-	return sites	
-	
-	
-	
-# ==== PRIVATE FUNCTIONS ====
-	
+	return sites
+
+
+# ==== PRIVATE FUNCTIONS ====	
 func _make_outer_polygon(triangles: Array, out_polygon: Array) -> void:
 	var duplicates: Array # of Edge
 	
@@ -311,51 +305,50 @@ func _make_outer_polygon(triangles: Array, out_polygon: Array) -> void:
 		out_polygon.append(triangle.edge_ab)
 		out_polygon.append(triangle.edge_bc)
 		out_polygon.append(triangle.edge_ca)
-		
+	
 	for edge1 in out_polygon:
 		for edge2 in out_polygon:
 			if edge1 != edge2 && edge1.equals(edge2):
 				duplicates.append(edge1)
 				duplicates.append(edge2)
-				
+	
 	for edge in duplicates:
 		out_polygon.erase(edge)
-		
-	
+
+
 func _find_bad_triangles(point: Vector2, triangles: Array, out_bad_triangles: Array) -> void:
 	for triangle in triangles:
 		if triangle.is_point_inside_circumcircle(point):
 			out_bad_triangles.append(triangle)
-			
-			
-func _find_voronoi_neightbour(site: VoronoiSite, triangle: Triangle, possibilities: Array) -> VoronoiEdge:
-	var triangle_index = site.source_triangles.find(triangle)
-	var next_triangle_index = triangle_index + 1
-	if (next_triangle_index == site.source_triangles.size()):
+
+
+func _find_voronoi_neighbour(site: VoronoiSite, triangle: Triangle, possibilities: Array) -> VoronoiEdge:
+	var triangle_index := site.source_triangles.find(triangle)
+	var next_triangle_index := triangle_index + 1
+	if next_triangle_index == site.source_triangles.size():
 		next_triangle_index = 0
-	var next_triangle = site.source_triangles[next_triangle_index]
+	var next_triangle: Triangle = site.source_triangles[next_triangle_index]
 	
-	var opposite_edge = triangle.get_corner_opposite_edge(site.center)
-	var opposite_edge_next = next_triangle.get_corner_opposite_edge(site.center)
-	var common_point = opposite_edge.a
+	var opposite_edge := triangle.get_corner_opposite_edge(site.center)
+	var opposite_edge_next := next_triangle.get_corner_opposite_edge(site.center)
+	var common_point := opposite_edge.a
 	if common_point != opposite_edge_next.a && common_point != opposite_edge_next.b:
 		common_point = opposite_edge.b
-		
+	
 	for pos_site in possibilities:
 		if pos_site.center != common_point:
 			continue
 		
-		var edge = VoronoiEdge.new()
+		var edge := VoronoiEdge.new()
 		edge.a = triangle.center
 		edge.b = next_triangle.center
 		edge.this = site
 		edge.other = pos_site
 		return edge
-		
+	
 	return null
-		
-		
-			
+
+
 # super triangle is not used since this method was giving worse results than super rectangle
 # but I'm leaving this function because it works if someone needs it
 func _calculate_super_triangle() -> Triangle:
@@ -367,15 +360,15 @@ func _calculate_super_triangle() -> Triangle:
 		minp.y = min(minp.y, point.y)
 		maxp.x = max(maxp.x, point.x)
 		maxp.y = max(maxp.y, point.y)
-		
+	
 	# add extra safe space padding
 	minp = minp - (maxp - minp) * 0.25
 	maxp = maxp + (maxp - minp) * 0.25
-		
+	
 	# extend rectangle to square
-	var a = maxp.x - minp.x
-	var b = maxp.y - minp.y
-	var hd = abs(a - b) * 0.5
+	var a := maxp.x - minp.x
+	var b := maxp.y - minp.y
+	var hd := abs(a - b) * 0.5
 	if a > b:
 		minp.y = minp.y - hd
 		maxp.y = maxp.y + hd
@@ -384,15 +377,13 @@ func _calculate_super_triangle() -> Triangle:
 		minp.x = minp.x - hd
 		maxp.x = maxp.x + hd
 		a = b
-
-		
+	
 	# make equilateral triangle that contains such square
-	var b2 = b * 0.5
-	var a4 = a * 0.25
+	var b2 := b * 0.5
+	var a4 := a * 0.25
 	
-	var p1 = Vector2((minp.x + maxp.x) * 0.5, minp.y - b2)
-	var p2 = Vector2(minp.x - a4, maxp.y)
-	var p3 = Vector2(maxp.x + a4, maxp.y)
-		
+	var p1 := Vector2((minp.x + maxp.x) * 0.5, minp.y - b2)
+	var p2 := Vector2(minp.x - a4, maxp.y)
+	var p3 := Vector2(maxp.x + a4, maxp.y)
+	
 	return Triangle.new(p1, p2, p3)
-	
