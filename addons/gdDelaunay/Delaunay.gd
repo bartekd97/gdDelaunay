@@ -148,7 +148,8 @@ var _rect_super_triangle2: Triangle
 
 # ==== CONSTRUCTOR ====
 func _init(rect := Rect2()):
-	set_rectangle(rect)
+	if (!rect.has_no_area()):
+		set_rectangle(rect)
 
 
 # ==== PUBLIC FUNCTIONS ====
@@ -190,6 +191,24 @@ func remove_border_triangles(triangulation: Array) -> void:
 func is_border_site(site: VoronoiSite) -> bool:
 	return !_rect.encloses(site.get_boundary())
 
+### XN: Helper function to get the site polygons or if the site is a border site, get the clipped polygon.
+func get_polygon_site(site: VoronoiSite) -> PoolVector2Array:
+	if !is_border_site(site):
+		return site.polygon
+
+	# reconstruct the bounding rectangle into polygon
+	var bound_rect = PoolVector2Array([
+		_rect.position, 
+		_rect.position + Vector2(_rect.size.x, 0),
+		_rect.end,
+		_rect.position + Vector2(0, _rect.size.y),
+		])
+	
+	var intersects = Geometry.intersect_polygons_2d(site.polygon, bound_rect)
+	if intersects.size() > 1 : 
+		print_debug("Warning: more than 1 intersect areas, return the first intersect area")
+	
+	return intersects[0]
 
 func remove_border_sites(sites: Array) -> void:
 	var border_sites: Array
