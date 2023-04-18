@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=2 format=3 uid="uid://qrnsapvpvss6"]
 
-[sub_resource type="GDScript" id=1]
+[sub_resource type="GDScript" id="1"]
 script/source = "extends Node2D
 
 var delaunay: Delaunay
@@ -12,7 +12,7 @@ func _ready():
 	randomize()
 	for i in range(10):
 		for j in range(10):
-			add_point(Vector2(50 + i*100 + rand_range(-15,15), 50 + j * 50 + rand_range(-15,15)) * 1.2)
+			add_point(Vector2(50 + i*100 + randi_range(-15,15), 50 + j * 50 + randi_range(-15,15)) * 1.2)
 
 
 	var triangles = delaunay.triangulate()
@@ -24,29 +24,29 @@ func _ready():
 	for site in sites:
 		show_site(site)
 	for site in sites:
-		if site.neightbours.size() != site.source_triangles.size():
+		if site.neighbours.size() != site.source_triangles.size():
 			continue # sites on edges will have incomplete neightbours information
-		for nb in site.neightbours:
-			show_neightbour(nb)
+		for nb in site.neighbours:
+			show_neighbour(nb)
 	
 
 func add_point(point: Vector2):
 	var polygon = Polygon2D.new()
-	var p = PoolVector2Array()
+	var p = PackedVector2Array()
 	var s = 5
 	p.append(Vector2(-s,s))
 	p.append(Vector2(s,s))
 	p.append(Vector2(s,-s))
 	p.append(Vector2(-s,-s))
 	polygon.polygon = p
-	polygon.color = Color.burlywood
+	polygon.color = Color.BURLYWOOD
 	polygon.position = point
 	add_child(polygon)
 	delaunay.add_point(point)
 
 func show_triangle(triangle: Delaunay.Triangle):
 	var line = Line2D.new()
-	var p = PoolVector2Array()
+	var p = PackedVector2Array()
 	p.append(triangle.a)
 	p.append(triangle.b)
 	p.append(triangle.c)
@@ -57,32 +57,42 @@ func show_triangle(triangle: Delaunay.Triangle):
 	add_child(line)
 
 func show_site(site: Delaunay.VoronoiSite):
-	var line = Line2D.new()
+####As Lines
+#	var line = Line2D.new()
+#	var p = site.polygon
+#	p.append(p[0])
+#	line.points = p
+#	line.width = 1
+#	line.default_color = Color.GREEN_YELLOW
+#	add_child(line)
+
+####As Polygons
+	var polygon = Polygon2D.new()
 	var p = site.polygon
 	p.append(p[0])
-	line.points = p
-	line.width = 1
-	line.default_color = Color.greenyellow
-	add_child(line)
+	polygon.polygon = p
+	polygon.color = Color(randf_range(0,1),randf_range(0,1),randf_range(0,1),0.5)
+	polygon.z_index = -1
+	add_child(polygon)
 	
-func show_neightbour(edge: Delaunay.VoronoiEdge):
+func show_neighbour(edge: Delaunay.VoronoiEdge):
 	var line = Line2D.new()
-	var points: PoolVector2Array
+	var points: PackedVector2Array
 	var l = 6
 	var s = lerp(edge.a, edge.b, 0.6)
-	var dir = edge.a.direction_to(edge.b).tangent()
+	var dir = edge.a.direction_to(edge.b).orthogonal()
 	points.append(s + dir * l)
 	points.append(s - dir * l)
 	line.points = points
 	line.width = 1
-	line.default_color = Color.cyan
+	line.default_color = Color.CYAN
 	add_child(line)
 "
 
 [node name="Node2D" type="Node2D"]
 
 [node name="Generator" type="Node2D" parent="."]
-position = Vector2( 0, 1 )
-script = SubResource( 1 )
+position = Vector2(0, 1)
+script = SubResource("1")
 
 [node name="Polygon2D" type="Polygon2D" parent="Generator"]
