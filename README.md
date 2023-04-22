@@ -125,6 +125,6 @@ func make_voronoi(triangulation: Array) -> Array # of VoronoiSite
 
 - [ ] Implement [Lloyd's relaxation algorithm](https://en.wikipedia.org/wiki/Lloyd%27s_algorithm)
 - [ ] Automatically clip border Voronoi cell polygons to rectangle border edges [^1]
-- [ ] Port to Godot 4
+- [x] ~~Port to Godot 4~~ - thanks to #6
 
 [^1]: possible by using `get_polygon_site()` function manually
