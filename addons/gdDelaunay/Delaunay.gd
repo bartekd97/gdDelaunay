@@ -232,23 +232,20 @@ func triangulate() -> Array[Triangle]:
 	var polygon: Array[Edge] = []
 
 	for point in points:
-		bad_triangles.clear()
-		polygon.clear()
+		var local_bad_triangles := _find_bad_triangles(point, triangulation)
+		for bad_triangle in local_bad_triangles:
+			var circum_center := bad_triangle.center
+			triangulation.erase(bad_triangle)
 
-		_find_bad_triangles(point, triangulation, bad_triangles)
-		for bad_tirangle in bad_triangles:
-			triangulation.erase(bad_tirangle)
-
-		_make_outer_polygon(bad_triangles, polygon)
-		for edge in polygon:
+		var local_polygon := _make_outer_polygon(local_bad_triangles)
+		for edge in local_polygon:
 			triangulation.append(Triangle.new(point, edge.a, edge.b))
 
 	return triangulation
 
 
-func make_voronoi(triangulation: Array) -> Array[VoronoiSite]:
+func make_voronoi(triangulation: Array[Triangle]) -> Array[VoronoiSite]:
 	var sites: Array[VoronoiSite] = []
-
 	var completion_counter: Array[Vector2] = []# no PackedVector2Array to allow more oeprations
 	var triangle_usage: Dictionary = {} # { Triangle : Array[VoronoiSite] }, used for neighbour scan
 	for triangle in triangulation:
@@ -260,7 +257,7 @@ func make_voronoi(triangulation: Array) -> Array[VoronoiSite]:
 		completion_counter.clear()
 
 		for triangle in triangulation:
-			if !triangle.is_corner(point):
+			if not triangle.is_corner(point):
 				continue
 
 			site.source_triangles.append(triangle)
@@ -272,10 +269,10 @@ func make_voronoi(triangulation: Array) -> Array[VoronoiSite]:
 			completion_counter.append(edge.b)
 
 		var is_complete := completion_counter.size() == site.source_triangles.size()
-		if !is_complete:
+		if not is_complete:
 			continue # do not add sites without complete polygon, usually only corner sites than come from Rect boundary
 
-		var sort_func = Callable(site, "_sort_source_triangles")
+		var sort_func := Callable(site, "_sort_source_triangles")
 		sort_func.bind(site.source_triangles)
 		site.source_triangles.sort_custom(sort_func)
 		#site.source_triangles.sort_custom(site, "_sort_source_triangles")
@@ -300,41 +297,39 @@ func make_voronoi(triangulation: Array) -> Array[VoronoiSite]:
 
 
 # ==== PRIVATE FUNCTIONS ====
-func _make_outer_polygon(triangles: Array[Triangle], out_polygon: Array[Edge]) -> void:
+func _make_outer_polygon(triangles: Array[Triangle]) -> Array[Edge]:
+	var result: Array[Edge] = []
 	var duplicates: Array[Edge] = []
 
 	for triangle in triangles:
-		out_polygon.append(triangle.edge_ab)
-		out_polygon.append(triangle.edge_bc)
-		out_polygon.append(triangle.edge_ca)
+		result.append(triangle.edge_ab)
+		result.append(triangle.edge_bc)
+		result.append(triangle.edge_ca)
 
-	for edge1 in out_polygon:
-		for edge2 in out_polygon:
-			if edge1 != edge2 && edge1.equals(edge2):
-				duplicates.append(edge1)
+	for e_1 in range(result.size()):
+		for e_2 in range(e_1 + 1, result.size()):
+			var edge1 := result[e_1]
+			var edge2 := result[e_2]
+			if edge1.equals(edge2):
+				# duplicates.append(edge1) # Only one of them counts as a duplicate (?)
 				duplicates.append(edge2)
 
-	for edge in duplicates:
-		out_polygon.erase(edge)
+	return result.filter(func(e: Edge): return not duplicates.has(e) )
 
 
-func _find_bad_triangles(point: Vector2, triangles: Array[Triangle], out_bad_triangles: Array[Triangle]) -> void:
-	for triangle in triangles:
-		if triangle.is_point_inside_circumcircle(point):
-			out_bad_triangles.append(triangle)
+func _find_bad_triangles(point: Vector2, triangles: Array[Triangle]) -> Array[Triangle]:
+	return triangles.filter(func(t: Triangle): return t.is_point_inside_circumcircle(point))
 
 
 func _find_voronoi_neighbour(site: VoronoiSite, triangle: Triangle, possibilities: Array[VoronoiSite]) -> VoronoiEdge:
 	var triangle_index := site.source_triangles.find(triangle)
-	var next_triangle_index := triangle_index + 1
-	if next_triangle_index == site.source_triangles.size():
-		next_triangle_index = 0
+	var next_triangle_index := wrapi(triangle_index + 1, 0, site.source_triangles.size())
 	var next_triangle: Triangle = site.source_triangles[next_triangle_index]
 
 	var opposite_edge := triangle.get_corner_opposite_edge(site.center)
 	var opposite_edge_next := next_triangle.get_corner_opposite_edge(site.center)
 	var common_point := opposite_edge.a
-	if common_point != opposite_edge_next.a && common_point != opposite_edge_next.b:
+	if common_point != opposite_edge_next.a and common_point != opposite_edge_next.b:
 		common_point = opposite_edge.b
 
 	for pos_site in possibilities:
