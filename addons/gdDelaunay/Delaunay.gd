@@ -63,6 +63,23 @@ class Triangle:
 	func is_point_inside_circumcircle(point: Vector2) -> bool:
 		return center.distance_squared_to(point) < radius_sqr
 
+	func is_edge_inside_circumcircle(edge: Edge) -> bool:
+		var radius := sqrt(radius_sqr)
+		var min_dist := radius_sqr + 20 # just needs to be a "big" number
+		var max_dist := max(center.distance_to(edge.a), center.distance_to(edge.b))
+		var c_a := edge.a - center
+		var c_b := edge.b - center
+		var a_b := edge.b - edge.a
+		var b_a := edge.a - edge.b
+		if c_a.dot(b_a) > 0 and c_b.dot(a_b) > 0:
+			min_dist = abs(c_a.cross(c_b)) / edge.length()
+		else:
+			min_dist = min(c_a.length(), c_b.length())
+		#######
+		if min_dist <= radius and max_dist >= radius:
+			return true
+		return false
+
 	func is_corner(point: Vector2) -> bool:
 		return point == a || point == b || point == c
 
@@ -218,30 +235,66 @@ func remove_border_sites(sites: Array[VoronoiSite]) -> void:
 		sites.erase(border_site)
 
 
-func triangulate() -> Array[Triangle]:
-	var triangulation: Array[Triangle] = []
-
+func triangulate(refined: bool = false) -> Array[Triangle]:
 	# calculate rectangle if none
 	if !(_rect.has_area()):
 		set_rectangle(calculate_rect(points))
-
+	if refined:
+		return _triangulate_refined()
+	var triangulation: Array[Triangle] = []
 	triangulation.append(_rect_super_triangle1)
 	triangulation.append(_rect_super_triangle2)
 
-	var bad_triangles: Array[Triangle] =[]
+	var bad_triangles: Array[Triangle] = []
 	var polygon: Array[Edge] = []
+	for point in points:
+		bad_triangles.clear()
+		polygon.clear()
+		bad_triangles = _find_bad_triangles(point, triangulation)
+		for bad_triangle in bad_triangles:
+			triangulation.erase(bad_triangle)
 
+		polygon = _make_outer_polygon(bad_triangles)
+		for edge in polygon:
+			triangulation.append(Triangle.new(point, edge.a, edge.b))
+
+	return triangulation
+
+func _triangulate_refined() -> Array[Triangle]:
+	# T
+	var triangulation: Array[Triangle] = []
+	triangulation.append(_rect_super_triangle1)
+	triangulation.append(_rect_super_triangle2)
+	# Q
+	var poor_quality_triangles: Array[Triangle] = []
+	var encroached_segments: Array[Edge] = []
 	for point in points:
 		var local_bad_triangles := _find_bad_triangles(point, triangulation)
 		for bad_triangle in local_bad_triangles:
-			var circum_center := bad_triangle.center
 			triangulation.erase(bad_triangle)
+		poor_quality_triangles.append_array(local_bad_triangles)
 
 		var local_polygon := _make_outer_polygon(local_bad_triangles)
 		for edge in local_polygon:
 			triangulation.append(Triangle.new(point, edge.a, edge.b))
-
+		# encroached_segments.append_array(local_polygon)
+		# Add the centers of all segments and clear (this) Q
+		for segment in encroached_segments:
+			points.append(segment.center())
+		encroached_segments.clear()
+		# Do the same for poor quality triangles then clear (this other) Q
+		for t in poor_quality_triangles:
+			var local_encroached_segments := local_polygon.filter(
+				func(e: Edge): return t.is_edge_inside_circumcircle(e)
+			)
+			if local_encroached_segments.size() > 0:
+				encroached_segments.append_array(local_encroached_segments)
+			else:
+				points.append(t.center)
+				continue
+		poor_quality_triangles.clear()
 	return triangulation
+
 
 
 func make_voronoi(triangulation: Array[Triangle]) -> Array[VoronoiSite]:
