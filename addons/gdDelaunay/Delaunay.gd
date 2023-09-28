@@ -61,6 +61,8 @@ class Triangle:
 		radius_sqr = a.distance_squared_to(center)
 	
 	func is_point_inside_circumcircle(point: Vector2) -> bool:
+		if point == a or point == b or point == c:
+			return false
 		return center.distance_squared_to(point) < radius_sqr
 	
 	func is_corner(point: Vector2) -> bool:
