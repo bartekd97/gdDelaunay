@@ -44,26 +44,29 @@ class Triangle:
 	
 	
 	func recalculate_circumcircle() -> void:
-		var ab := a.length_squared()
-		var cd := b.length_squared()
-		var ef := c.length_squared()
+		var floats = Delaunay.get_better_floats([a, b, c])
+		var ab = floats[1].length_squared()
+		var cd = floats[2].length_squared()
+		var ef = floats[3].length_squared()
 		
-		var cmb := c - b
-		var amc := a - c
-		var bma := b - a
+		var cmb = floats[3] - floats[2]
+		var amc = floats[1] - floats[3]
+		var bma = floats[2] - floats[1]
 	
 		var circum := Vector2(
-			(ab * cmb.y + cd * amc.y + ef * bma.y) / (a.x * cmb.y + b.x * amc.y + c.x * bma.y),
-			(ab * cmb.x + cd * amc.x + ef * bma.x) / (a.y * cmb.x + b.y * amc.x + c.y * bma.x)
+			(ab * cmb.y + cd * amc.y + ef * bma.y) / (floats[1].x * cmb.y + floats[2].x * amc.y + floats[3].x * bma.y),
+			(ab * cmb.x + cd * amc.x + ef * bma.x) / (floats[1].y * cmb.x + floats[2].y * amc.x + floats[3].y * bma.x)
 		)
 	
-		center = circum * 0.5
-		radius_sqr = a.distance_squared_to(center)
+		center = circum * 0.5 + floats[0]
+		floats = Delaunay.get_better_floats([a, center])
+		radius_sqr = floats[1].distance_squared_to(floats[2])
 	
 	func is_point_inside_circumcircle(point: Vector2) -> bool:
 		if point == a or point == b or point == c:
 			return false
-		return center.distance_squared_to(point) < radius_sqr
+		var floats = Delaunay.get_better_floats([center, point])
+		return floats[1].distance_squared_to(floats[2]) < radius_sqr
 	
 	func is_corner(point: Vector2) -> bool:
 		return point == a || point == b || point == c
@@ -126,6 +129,23 @@ class VoronoiEdge:
 
 
 # ==== PUBLIC STATIC FUNCTIONS ====
+
+# Returns adjusted copies of the Vectors given to it, moved so they are as close
+# to Vector2.ZERO as possible.
+# The vector by which all the others are displaced is returned in the first value.
+# Add this to any new Vectors calculated via the use of these adjusted Vectors at the end.
+static func get_better_floats(arr : Array[Vector2]) -> Array:
+	var x_sum : float = 0
+	var y_sum : float = 0
+	for vector in arr:
+		x_sum += vector.x
+		y_sum += vector.y
+	var mid_point = Vector2(x_sum/arr.size(), y_sum/arr.size())
+	var ret : Array[Vector2]
+	ret.append(mid_point)
+	for vector in arr:
+		ret.append(Vector2(vector.x-mid_point.x, vector.y-mid_point.y))
+	return ret
 
 # calculates rect that contains all given points
 static func calculate_rect(points: PackedVector2Array, padding: float = 0.0) -> Rect2:
@@ -240,7 +260,7 @@ func triangulate() -> Array: # of Triangle
 		_find_bad_triangles(point, triangulation, bad_triangles)
 		for bad_tirangle in bad_triangles:
 			triangulation.erase(bad_tirangle)
-	
+		
 		_make_outer_polygon(bad_triangles, polygon)
 		for edge in polygon:
 			triangulation.append(Triangle.new(point, edge.a, edge.b))
@@ -310,11 +330,11 @@ func _make_outer_polygon(triangles: Array, out_polygon: Array) -> void:
 		out_polygon.append(triangle.edge_bc)
 		out_polygon.append(triangle.edge_ca)
 	
-	for edge1 in out_polygon:
-		for edge2 in out_polygon:
-			if edge1 != edge2 && edge1.equals(edge2):
-				duplicates.append(edge1)
-				duplicates.append(edge2)
+	for i in range(0, out_polygon.size()-1):
+		for j in range(i+1, out_polygon.size()):
+			if out_polygon[i].equals(out_polygon[j]):
+				duplicates.append(out_polygon[i])
+				duplicates.append(out_polygon[j])
 	
 	for edge in duplicates:
 		out_polygon.erase(edge)
