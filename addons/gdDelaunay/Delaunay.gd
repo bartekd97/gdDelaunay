@@ -251,7 +251,7 @@ func triangulate() -> Array: # of Triangle
 func make_voronoi(triangulation: Array) -> Array: # of VoronoiSite
 	var sites: Array
 
-	var completion_counter: Array # of Vector2, no PackedVector2Array to allow more oeprations
+	var completion_counter: Array # of Vector2, no PackedVector2Array to allow more operations
 	var triangle_usage: Dictionary # of Triangle and Array[VoronoiSite], used for neighbour scan
 	for triangle in triangulation:
 		triangle_usage[triangle] = []
